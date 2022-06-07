@@ -34,8 +34,9 @@ def getNev(typen,url):
         else:
             dateNev = dateNev[0] +  dateNev[1] +  dateNev[2]
         dateNev = int(dateNev)
+        rezerv = gerRezerv(url)
 
-        return [nevEbtal, dateNev]
+        return [nevEbtal, dateNev, rezerv]
 
 def gregorian_to_jalali(GDate):
     GDate = str(GDate)
@@ -100,6 +101,7 @@ def newEtf(urlStart,name,urlNev,TypeSite):
         df = pd.read_csv(df,sep=",")
         df['<DTYYYYMMDD>'] = df['<DTYYYYMMDD>'] = [gregorian_to_jalali(x) for x in df['<DTYYYYMMDD>']]
         df['nav'] = np.nan
+        df['rezerv'] = np.nan
         df = df.to_dict(orient='records')
         newEtfDb = eftManege[name]
         newEtfDb.insert_many(df)
@@ -122,8 +124,10 @@ def updateEtf(name):
         nav = getNev(typn,urlnev)
         print(nav)
         df['nav'] = np.nan
+        df['rezerv'] = np.nan
         df = df.set_index('<DTYYYYMMDD>')
         df['nav'][nav[1]] = nav[0]
+        df['rezerv'][nav[1]] = nav[2]
         print(df)
         df = df.reset_index()
         df = df.to_dict(orient='records')
@@ -137,3 +141,18 @@ def listEtf():
     for x in eftManege['infoEtfDb'].find():
         listEtf.append(x['name'])
     return listEtf
+
+
+def gerRezerv(url):
+    driver = webdriver.Chrome(executable_path='chromedriver.exe')
+    driver.get(url)
+    driver.find_element_by_xpath('/html/body/div[4]/form/div[2]/div/ul/li[9]/a').click()
+    time.sleep(5)
+    tabale = driver.find_element_by_xpath('/html/body/div[4]/form/div[3]/div[9]/span/div[2]/div[2]/table/tbody').text
+    tabale = tabale.split('\n')
+    print(tabale)
+    rezerv = [tabale.index(x) for x in tabale if 'رزرو' in x]
+    if len(rezerv)>0:
+        rezerv = tabale[rezerv[0]+2].split(' ')[0]
+    driver.quit()
+    return rezerv
